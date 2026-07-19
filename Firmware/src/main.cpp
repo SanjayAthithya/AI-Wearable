@@ -4,20 +4,32 @@
 void setup()
 {
     Serial.begin(115200);
-    delay(1000);
-    if(imuBegin())
-    {
-        Serial.println("MPU6500 Driver Ready");
-    }
-    else
+
+    while (!Serial);
+
+    Serial.println();
+    Serial.println("================================");
+    Serial.println("AI Wearable Project");
+    Serial.println("Initializing MPU6500...");
+    Serial.println("================================");
+
+    if (!imuBegin())
     {
         Serial.println("MPU6500 Initialization Failed");
-        while(true);
+
+        while (1);
     }
+
+    Serial.println("MPU6500 Ready");
+
+    imuCalibrate();
 }
+
 void loop()
 {
-    imuRead();
+    imuUpdate();
+
     imuPrint();
+
     delay(500);
 }
