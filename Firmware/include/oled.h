@@ -2,45 +2,41 @@
 #define OLED_H
 
 #include <Arduino.h>
+#include <U8g2lib.h>
 
-//======================================
+#include "imu.h"
+#include "hr_module.h"
+
+//==================================================
 // Initialization
-//======================================
+//==================================================
 
 bool oledBegin();
 
-//======================================
-// Basic Functions
-//======================================
+//==================================================
+// Display Functions
+//==================================================
 
-void oledClear();
+void oledSplash();
 
-//======================================
-// Screens
-//======================================
+void oledUpdate();
 
-void oledShowBoot();
+//==================================================
+// Individual Pages
+//==================================================
 
-void oledShowHealth(
-    int heartRate,
-    int spo2,
-    float temperature,
-    float battery);
+void oledHeartPage();
 
-void oledShowMotion(
-    float accX,
-    float accY,
-    float accZ,
-    float gyroX,
-    float gyroY,
-    float gyroZ);
+void oledAccelPage();
 
-void oledShowAlert(
-    const String &message);
+void oledGyroPage();
 
-void oledShowDebug(
-    uint32_t ir,
-    uint32_t red,
-    bool wifiStatus);
+void oledTempPage();
+
+//==================================================
+// Page Control
+//==================================================
+
+void oledNextPage();
 
 #endif

@@ -61,7 +61,6 @@ uint8_t readRegister(uint8_t reg)
 
 bool imuBegin()
 {
-    Wire.begin(21, 22);
 
     Wire.beginTransmission(MPU_ADDR);
 

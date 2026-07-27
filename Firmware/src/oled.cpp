@@ -1,188 +1,263 @@
 #include "oled.h"
 
 #include <Wire.h>
-#include <U8g2lib.h>
 
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(U8G2_R0);
+//==================================================
+// OLED Object
+//==================================================
 
-//======================================
-// Initialization
-//======================================
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C oled(
+    U8G2_R0,
+    U8X8_PIN_NONE
+);
+
+//==================================================
+// Page Variables
+//==================================================
+
+static uint8_t currentPage = 0;
+
+static unsigned long lastPageChange = 0;
+
+const unsigned long PAGE_TIME = 2000;   // 2 seconds
+
+//==================================================
+// Initialize OLED
+//==================================================
 
 bool oledBegin()
 {
     oled.begin();
 
     oled.clearBuffer();
-    oled.setFont(u8g2_font_6x12_tf);
-    oled.drawStr(25, 30, "OLED READY");
     oled.sendBuffer();
 
-    delay(1000);
+    oledSplash();
+
+    lastPageChange = millis();
 
     return true;
 }
 
-//======================================
-// Clear Screen
-//======================================
+//==================================================
+// Splash Screen
+//==================================================
 
-void oledClear()
-{
-    oled.clearBuffer();
-    oled.sendBuffer();
-}
-
-//======================================
-// Boot Screen
-//======================================
-
-void oledShowBoot()
+void oledSplash()
 {
     oled.clearBuffer();
 
-    oled.setFont(u8g2_font_ncenB10_tr);
-    oled.drawStr(8,22,"AI WEARABLE");
+    oled.setFont(u8g2_font_ncenB14_tr);
+    oled.drawStr(10,22,"AI Wearable");
 
-    oled.setFont(u8g2_font_6x12_tf);
-    oled.drawStr(18,48,"Initializing...");
+    oled.setFont(u8g2_font_6x12_tr);
+    oled.drawStr(22,45,"Initializing...");
 
     oled.sendBuffer();
+
+    delay(2000);
 }
 
-//======================================
-// Health Screen
-//======================================
+//==================================================
+// Change Page
+//==================================================
 
-void oledShowHealth(
-    int heartRate,
-    int spo2,
-    float temperature,
-    float battery)
+void oledNextPage()
+{
+    currentPage++;
+
+    if(currentPage > 3)
+        currentPage = 0;
+}
+
+//==================================================
+// Update Display
+//==================================================
+
+void oledUpdate()
+{
+    if(millis() - lastPageChange >= PAGE_TIME)
+    {
+        lastPageChange = millis();
+
+        oledNextPage();
+    }
+
+    switch(currentPage)
+    {
+        case 0:
+            oledHeartPage();
+            break;
+
+        case 1:
+            oledAccelPage();
+            break;
+
+        case 2:
+            oledGyroPage();
+            break;
+
+        case 3:
+            oledTempPage();
+            break;
+    }
+}
+//==================================================
+// Heart Sensor Page
+//==================================================
+
+void oledHeartPage()
 {
     oled.clearBuffer();
 
-    oled.setFont(u8g2_font_6x12_tf);
+    //----------------------------------------
+    // Title
+    //----------------------------------------
 
-    oled.setCursor(0,15);
-    oled.print("HR : ");
-    oled.print(heartRate);
-    oled.print(" bpm");
+    oled.setFont(u8g2_font_ncenB08_tr);
+    oled.drawStr(18,12,"AI Wearable");
 
-    oled.setCursor(0,30);
-    oled.print("SpO2 : ");
-    oled.print(spo2);
-    oled.print("%");
+    oled.setFont(u8g2_font_6x12_tr);
 
-    oled.setCursor(0,45);
-    oled.print("Temp : ");
-    oled.print(temperature,1);
-    oled.print(" C");
+    //----------------------------------------
+    // Finger Status
+    //----------------------------------------
 
-    oled.setCursor(0,60);
-    oled.print("BAT : ");
-    oled.print(battery,0);
-    oled.print("%");
+    oled.drawStr(0,28,"Finger :");
 
-    oled.sendBuffer();
-}
+    if (fingerDetected())
+        oled.drawStr(60,28,"YES");
+    else
+        oled.drawStr(60,28,"NO");
 
-//======================================
-// Motion Screen (LIVE MPU6500)
-//======================================
+    //----------------------------------------
+    // IR Value
+    //----------------------------------------
 
-void oledShowMotion(
-    float accX,
-    float accY,
-    float accZ,
-    float gyroX,
-    float gyroY,
-    float gyroZ)
-{
-    oled.clearBuffer();
+    oled.drawStr(0,42,"IR :");
+    oled.setCursor(35,42);
+    oled.print(getIRValue());
 
-    oled.setFont(u8g2_font_6x12_tf);
+    //----------------------------------------
+    // RED Value
+    //----------------------------------------
 
-    // Accelerometer
-    oled.setCursor(0,12);
-    oled.print("AX:");
-    oled.print(accX,2);
+    oled.drawStr(0,54,"RED:");
+    oled.setCursor(35,54);
+    oled.print(getRedValue());
 
-    oled.setCursor(64,12);
-    oled.print("GX:");
-    oled.print(gyroX,1);
+    //----------------------------------------
+    // BPM
+    //----------------------------------------
 
-    oled.setCursor(0,28);
-    oled.print("AY:");
-    oled.print(accY,2);
+    oled.drawStr(0,66,"BPM:");
 
-    oled.setCursor(64,28);
-    oled.print("GY:");
-    oled.print(gyroY,1);
+    oled.setCursor(35,66);
 
-    oled.setCursor(0,44);
-    oled.print("AZ:");
-    oled.print(accZ,2);
+    if (bpmValid())
+        oled.print(getBPM());
+    else
+        oled.print("--");
 
-    oled.setCursor(64,44);
-    oled.print("GZ:");
-    oled.print(gyroZ,1);
+    //----------------------------------------
+    // SpO2
+    //----------------------------------------
 
-    oled.drawLine(0,52,127,52);
+    oled.drawStr(70,66,"SpO2:");
 
-    oled.setCursor(18,63);
-    oled.print("MPU6500 LIVE");
+    oled.setCursor(108,66);
+
+    if (spo2Valid())
+    {
+        oled.print(getSpO2());
+        oled.print("%");
+    }
+    else
+    {
+        oled.print("--");
+    }
 
     oled.sendBuffer();
 }
+//==================================================
+// Accelerometer Page
+//==================================================
 
-//======================================
-// Alert Screen
-//======================================
-
-void oledShowAlert(const String &message)
+void oledAccelPage()
 {
+    IMUData imu = getIMUData();
+
     oled.clearBuffer();
 
     oled.setFont(u8g2_font_ncenB08_tr);
-    oled.drawStr(12,18,"!!! ALERT !!!");
+    oled.drawStr(18,12,"ACCELEROMETER");
 
-    oled.setFont(u8g2_font_6x12_tf);
+    oled.setFont(u8g2_font_6x12_tr);
 
-    oled.setCursor(0,42);
-    oled.print(message);
+    oled.drawStr(0,28,"X :");
+    oled.setCursor(28,28);
+    oled.print(imu.accX,3);
+
+    oled.drawStr(0,42,"Y :");
+    oled.setCursor(28,42);
+    oled.print(imu.accY,3);
+
+    oled.drawStr(0,56,"Z :");
+    oled.setCursor(28,56);
+    oled.print(imu.accZ,3);
 
     oled.sendBuffer();
 }
 
-//======================================
-// Debug Screen
-//======================================
+//==================================================
+// Gyroscope Page
+//==================================================
 
-void oledShowDebug(
-    uint32_t ir,
-    uint32_t red,
-    bool wifiStatus)
+void oledGyroPage()
 {
+    IMUData imu = getIMUData();
+
     oled.clearBuffer();
 
-    oled.setFont(u8g2_font_6x12_tf);
+    oled.setFont(u8g2_font_ncenB08_tr);
+    oled.drawStr(28,12,"GYROSCOPE");
 
-    oled.setCursor(0,15);
-    oled.print("IR : ");
-    oled.print(ir);
+    oled.setFont(u8g2_font_6x12_tr);
 
-    oled.setCursor(0,30);
-    oled.print("RED: ");
-    oled.print(red);
+    oled.drawStr(0,28,"X :");
+    oled.setCursor(28,28);
+    oled.print(imu.gyroX,2);
 
-    oled.setCursor(0,45);
-    oled.print("WiFi: ");
+    oled.drawStr(0,42,"Y :");
+    oled.setCursor(28,42);
+    oled.print(imu.gyroY,2);
 
-    if(wifiStatus)
-        oled.print("ON");
-    else
-        oled.print("OFF");
+    oled.drawStr(0,56,"Z :");
+    oled.setCursor(28,56);
+    oled.print(imu.gyroZ,2);
+
+    oled.sendBuffer();
+}
+
+//==================================================
+// Temperature Page
+//==================================================
+
+void oledTempPage()
+{
+    IMUData imu = getIMUData();
+
+    oled.clearBuffer();
+
+    oled.setFont(u8g2_font_ncenB08_tr);
+    oled.drawStr(22,15,"TEMPERATURE");
+
+    oled.setFont(u8g2_font_logisoso20_tr);
+
+    oled.setCursor(15,50);
+    oled.print(imu.temperature,1);
+
+    oled.print(" C");
 
     oled.sendBuffer();
 }

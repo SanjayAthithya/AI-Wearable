@@ -1,66 +1,130 @@
 #include <Arduino.h>
+#include <Wire.h>
 
 #include "imu.h"
+#include "hr_module.h"
 #include "oled.h"
 
 void setup()
 {
     Serial.begin(115200);
-
-    while (!Serial);
+    delay(1000);
 
     Serial.println();
-    Serial.println("================================");
-    Serial.println("AI Wearable Project");
-    Serial.println("System Initializing...");
-    Serial.println("================================");
+    Serial.println("=================================");
+    Serial.println("      AI Wearable Starting");
+    Serial.println("=================================");
 
-    // Initialize OLED
+    //--------------------------------------------------
+    // Shared I2C Bus
+    //--------------------------------------------------
+
+    Wire.begin(21, 22);
+
+    //--------------------------------------------------
+    // OLED
+    //--------------------------------------------------
+
     if (!oledBegin())
     {
-        Serial.println("OLED Initialization Failed");
+        Serial.println("OLED Initialization Failed!");
 
         while (1);
     }
 
-    oledShowBoot();
+    //--------------------------------------------------
+    // MPU6500
+    //--------------------------------------------------
 
-    delay(2000);
+    Serial.print("Initializing MPU6500... ");
 
-    // Initialize MPU6500
     if (!imuBegin())
     {
-        Serial.println("MPU6500 Initialization Failed");
-
-        oledShowAlert("MPU6500 ERROR");
+        Serial.println("FAILED");
 
         while (1);
     }
 
-    Serial.println("MPU6500 Ready");
+    Serial.println("OK");
 
     imuCalibrate();
 
-    delay(1000);
+    //--------------------------------------------------
+    // MAX30102
+    //--------------------------------------------------
+
+    Serial.print("Initializing MAX30102... ");
+
+    if (!heartRateBegin())
+    {
+        Serial.println("FAILED");
+
+        while (1);
+    }
+
+    Serial.println("OK");
+
+    Serial.println();
+    Serial.println("System Ready");
 }
 
 void loop()
 {
+    //--------------------------------------------------
+    // Update Sensors
+    //--------------------------------------------------
+
     imuUpdate();
 
-    IMUData imu = getIMUData();
+    heartRateUpdate();
 
-    // Show live MPU6500 values on OLED
-    oledShowMotion(
-        imu.accX,
-        imu.accY,
-        imu.accZ,
-        imu.gyroX,
-        imu.gyroY,
-        imu.gyroZ);
+    //--------------------------------------------------
+    // Update OLED
+    //--------------------------------------------------
 
-    // Debug output on Serial Monitor
-    imuPrint();
+    oledUpdate();
 
-    delay(100);
+    //--------------------------------------------------
+    // Serial Debug (Optional)
+    //--------------------------------------------------
+
+    static unsigned long lastPrint = 0;
+
+    if (millis() - lastPrint >= 500)
+    {
+        lastPrint = millis();
+
+        IMUData imu = getIMUData();
+
+        Serial.println("--------------------------------");
+
+        Serial.print("IR : ");
+        Serial.print(getIRValue());
+
+        Serial.print("   RED : ");
+        Serial.print(getRedValue());
+
+        Serial.print("   Finger : ");
+        Serial.println(fingerDetected());
+
+        Serial.print("ACC : ");
+        Serial.print(imu.accX, 3);
+        Serial.print("  ");
+        Serial.print(imu.accY, 3);
+        Serial.print("  ");
+        Serial.println(imu.accZ, 3);
+
+        Serial.print("GYRO : ");
+        Serial.print(imu.gyroX, 2);
+        Serial.print("  ");
+        Serial.print(imu.gyroY, 2);
+        Serial.print("  ");
+        Serial.println(imu.gyroZ, 2);
+
+        Serial.print("TEMP : ");
+        Serial.print(imu.temperature, 2);
+        Serial.println(" C");
+
+        Serial.println();
+    }
 }
