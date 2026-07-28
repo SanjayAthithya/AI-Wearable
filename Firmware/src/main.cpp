@@ -4,6 +4,18 @@
 #include "imu.h"
 #include "hr_module.h"
 #include "oled.h"
+#include "csv_logger.h"
+
+//==================================================
+// Debug Output
+//==================================================
+// 1 = Human-readable serial output
+// 0 = CSV-only output (recommended when logging)
+#define DEBUG_SERIAL 0
+
+//==================================================
+// Setup
+//==================================================
 
 void setup()
 {
@@ -66,7 +78,17 @@ void setup()
 
     Serial.println();
     Serial.println("System Ready");
+
+    //--------------------------------------------------
+    // CSV Header
+    //--------------------------------------------------
+
+    csvPrintHeader();
 }
+
+//==================================================
+// Main Loop
+//==================================================
 
 void loop()
 {
@@ -85,7 +107,15 @@ void loop()
     oledUpdate();
 
     //--------------------------------------------------
-    // Serial Debug (Optional)
+    // CSV Logger
+    //--------------------------------------------------
+
+    csvLog();
+
+#if DEBUG_SERIAL
+
+    //--------------------------------------------------
+    // Human Readable Debug
     //--------------------------------------------------
 
     static unsigned long lastPrint = 0;
@@ -107,6 +137,20 @@ void loop()
         Serial.print("   Finger : ");
         Serial.println(fingerDetected());
 
+        Serial.print("BPM : ");
+
+        if (bpmValid())
+            Serial.print(getBPM());
+        else
+            Serial.print("--");
+
+        Serial.print("   SpO2 : ");
+
+        if (spo2Valid())
+            Serial.println(getSpO2());
+        else
+            Serial.println("--");
+
         Serial.print("ACC : ");
         Serial.print(imu.accX, 3);
         Serial.print("  ");
@@ -127,4 +171,12 @@ void loop()
 
         Serial.println();
     }
+
+#endif
+
+    //--------------------------------------------------
+    // Sampling Rate
+    //--------------------------------------------------
+
+    delay(20);
 }
