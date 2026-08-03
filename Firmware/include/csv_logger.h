@@ -5,5 +5,6 @@
 
 void csvPrintHeader();
 void csvLog();
+String csvGetLine();
 
 #endif

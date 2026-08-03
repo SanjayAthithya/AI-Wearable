@@ -1,17 +1,14 @@
-#pragma once
-
-#include <Arduino.h>
+#ifndef HR_MODULE_H
+#define HR_MODULE_H
 
 bool heartRateBegin();
+
 void heartRateUpdate();
 
 bool fingerDetected();
 
 long getIRValue();
+
 long getRedValue();
 
-int getBPM();
-int getSpO2();
-
-bool bpmValid();
-bool spo2Valid();
+#endif

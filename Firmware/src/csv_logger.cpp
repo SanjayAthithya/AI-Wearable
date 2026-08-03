@@ -2,63 +2,84 @@
 
 #include "imu.h"
 #include "hr_module.h"
+#include "comm.h"
+
+//--------------------------------------------------
+// CSV Transmission Rate
+//--------------------------------------------------
+
+#define CSV_SEND_INTERVAL 50    // 50 ms = 20 Hz
+
+//--------------------------------------------------
+// CSV Header
+//--------------------------------------------------
 
 void csvPrintHeader()
 {
-    Serial.println(
-        "Time,IR,RED,Finger,BPM,SpO2,"
+    commSend(
+        "Time,IR,RED,Finger,"
         "AccX,AccY,AccZ,"
         "GyroX,GyroY,GyroZ,"
         "Temp");
 }
 
+//--------------------------------------------------
+// Send CSV
+//--------------------------------------------------
+
 void csvLog()
+{
+    static unsigned long lastSend = 0;
+
+    if (millis() - lastSend >= CSV_SEND_INTERVAL)
+    {
+        lastSend = millis();
+
+        commSend(csvGetLine());
+    }
+}
+
+//--------------------------------------------------
+// Create CSV Line
+//--------------------------------------------------
+
+String csvGetLine()
 {
     IMUData imu = getIMUData();
 
-    Serial.print(millis());
-    Serial.print(",");
+    String csv = "";
 
-    Serial.print(getIRValue());
-    Serial.print(",");
+    csv += String(millis());
+    csv += ",";
 
-    Serial.print(getRedValue());
-    Serial.print(",");
+    csv += String(getIRValue());
+    csv += ",";
 
-    Serial.print(fingerDetected());
-    Serial.print(",");
+    csv += String(getRedValue());
+    csv += ",";
 
-    if (bpmValid())
-        Serial.print(getBPM());
-    else
-        Serial.print(-1);
+    csv += String(fingerDetected());
+    csv += ",";
 
-    Serial.print(",");
+    csv += String(imu.accX, 4);
+    csv += ",";
 
-    if (spo2Valid())
-        Serial.print(getSpO2());
-    else
-        Serial.print(-1);
+    csv += String(imu.accY, 4);
+    csv += ",";
 
-    Serial.print(",");
+    csv += String(imu.accZ, 4);
+    csv += ",";
 
-    Serial.print(imu.accX, 4);
-    Serial.print(",");
+    csv += String(imu.gyroX, 4);
+    csv += ",";
 
-    Serial.print(imu.accY, 4);
-    Serial.print(",");
+    csv += String(imu.gyroY, 4);
+    csv += ",";
 
-    Serial.print(imu.accZ, 4);
-    Serial.print(",");
+    csv += String(imu.gyroZ, 4);
+    csv += ",";
 
-    Serial.print(imu.gyroX, 4);
-    Serial.print(",");
+    csv += String(imu.temperature, 2);
 
-    Serial.print(imu.gyroY, 4);
-    Serial.print(",");
-
-    Serial.print(imu.gyroZ, 4);
-    Serial.print(",");
-
-    Serial.println(imu.temperature, 2);
+    return csv;
 }

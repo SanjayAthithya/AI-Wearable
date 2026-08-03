@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
-
+#include "comm.h"
 #include "imu.h"
 #include "hr_module.h"
 #include "oled.h"
@@ -19,7 +19,11 @@
 
 void setup()
 {
-    Serial.begin(115200);
+    //--------------------------------------------------
+    // Communication
+    //--------------------------------------------------
+
+    commBegin();
     delay(1000);
 
     Serial.println();
@@ -114,10 +118,6 @@ void loop()
 
 #if DEBUG_SERIAL
 
-    //--------------------------------------------------
-    // Human Readable Debug
-    //--------------------------------------------------
-
     static unsigned long lastPrint = 0;
 
     if (millis() - lastPrint >= 500)
@@ -136,20 +136,6 @@ void loop()
 
         Serial.print("   Finger : ");
         Serial.println(fingerDetected());
-
-        Serial.print("BPM : ");
-
-        if (bpmValid())
-            Serial.print(getBPM());
-        else
-            Serial.print("--");
-
-        Serial.print("   SpO2 : ");
-
-        if (spo2Valid())
-            Serial.println(getSpO2());
-        else
-            Serial.println("--");
 
         Serial.print("ACC : ");
         Serial.print(imu.accX, 3);

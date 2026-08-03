@@ -76,14 +76,22 @@ void oledNextPage()
 
 void oledUpdate()
 {
-    if(millis() - lastPageChange >= PAGE_TIME)
+    static unsigned long lastOLEDUpdate = 0;
+
+    // Update display every 200 ms (5 Hz)
+    if (millis() - lastOLEDUpdate < 200)
+        return;
+
+    lastOLEDUpdate = millis();
+
+    // Change page every 2 seconds
+    if (millis() - lastPageChange >= PAGE_TIME)
     {
         lastPageChange = millis();
-
         oledNextPage();
     }
 
-    switch(currentPage)
+    switch (currentPage)
     {
         case 0:
             oledHeartPage();
@@ -102,6 +110,10 @@ void oledUpdate()
             break;
     }
 }
+//==================================================
+// Heart Sensor Page
+//==================================================
+
 //==================================================
 // Heart Sensor Page
 //==================================================
@@ -142,40 +154,9 @@ void oledHeartPage()
     // RED Value
     //----------------------------------------
 
-    oled.drawStr(0,54,"RED:");
-    oled.setCursor(35,54);
+    oled.drawStr(0,56,"RED:");
+    oled.setCursor(35,56);
     oled.print(getRedValue());
-
-    //----------------------------------------
-    // BPM
-    //----------------------------------------
-
-    oled.drawStr(0,66,"BPM:");
-
-    oled.setCursor(35,66);
-
-    if (bpmValid())
-        oled.print(getBPM());
-    else
-        oled.print("--");
-
-    //----------------------------------------
-    // SpO2
-    //----------------------------------------
-
-    oled.drawStr(70,66,"SpO2:");
-
-    oled.setCursor(108,66);
-
-    if (spo2Valid())
-    {
-        oled.print(getSpO2());
-        oled.print("%");
-    }
-    else
-    {
-        oled.print("--");
-    }
 
     oled.sendBuffer();
 }
